@@ -1,0 +1,182 @@
+- npm install express mongoose dotenv
+
+1. Configure MongoDB Connection
+	- create .env file in your project root to store environment variable:
+		MONGO_URI=mongodb://localhost:27017/mydatabase
+		PORT=3000
+		
+2. Create a MongoDB Model:
+	-	create models/items.js
+		const mongoose = require('mongoose');
+
+		const itemSchema = new mongoose.Schema({
+			name: { type: String, required: true },
+			quantity: { type: Number, default: 1 },
+			price: { type: Number, required: true }
+		});
+
+		module.exports = mongoose.model('Item', itemSchema);
+		
+3. Create Controller functions:
+	-	create controllers/itemControllers.js
+			const Item = require('../models/item');
+			exports.createItem = async (req, res) => {
+				try {
+					const item = new Item(req.body);
+					const savedItem = await item.save();
+					res.status(201).json(savedItem);
+				} catch (error) {
+					res.status(400).json({ message: error.message });
+				}
+			};
+			exports.getAllItems = async (req, res) => {
+				try {
+					const items = await Item.find();
+					res.status(200).json(items);
+				} catch (error) {
+					res.status(500).json({ message: error.message });
+				}
+			};
+			exports.getItemById =  async (req, res) => {
+				try{
+					const item = await Item.findOne({_id:req.params.id}); // const item = await Item.findById(req.params.id);
+					res.status(200).json(items);
+				} catch(error){
+					res.status(500).json({ message: error.message });
+				}
+			};
+			exports.updateItem = async (req, res) => {
+				try {
+					const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });// await Item.UpdateOne({_id:req.params.id},{$set: req.body})
+					if (!updatedItem) return res.status(404).json({ message: "Item not found" });
+						res.status(200).json(updatedItem);
+					} catch (error) {
+						res.status(500).json({ message: error.message });
+					}
+				};
+			exports.deleteItem = async (req, res) => {
+				try {
+					const deletedItem = await Item.findByIdAndDelete(req.params.id);
+					if (!deletedItem) return res.status(404).json({ message: "Item not found" });
+						res.status(200).json({ message: "Item deleted successfully" });
+					} catch (error) {
+						res.status(500).json({ message: error.message });
+					}
+				};
+4. Set Up API Routes:
+	-	Create routes/itemRoutes.js
+			const express = require('express');
+			const router = express.Router();
+			const itemController = require('../controllers/itemController');
+			router.get('/', itemController.getAllItems);
+			router.post('/', itemController.createItem);
+			router.put('/:id', itemController.updateItem);
+			router.delete('/:id', itemController.deleteItem);
+
+			module.exports = router;
+			
+5. Configure Express Server
+	- Create server.js file:
+		const express = require('express');
+		const mongoose = require('mongoose');
+		const dotenv = require('dotenv');
+		const itemRoutes = require('./routes/itemRoutes');
+
+		dotenv.config();
+		const app = express();
+		app.use(express.json());
+		mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+			.then(() => console.log('Connected to MongoDB'))
+			.catch((error) => console.error('MongoDB connection error:', error));
+		app.use('/api/items', itemRoutes);
+		const PORT = process.env.PORT || 3000;
+		app.listen(PORT, () => {
+			console.log(`Server is running on http://localhost:${PORT}`);
+		});
+		
+6. Start the Server:
+	- node server.
+	- npm install -g nodemon
+	- nodemon server.js
+	
+7. Test the API:
+	POSTMAN/ thunderclient:
+	- http://localhost:3000/api/items - POST (json data with body)
+	
+CORS Configuration:
+	- npm install cors
+	- Create server.js file:
+		const express = require('express');
+		const mongoose = require('mongoose');
+		const dotenv = require('dotenv');
+		const cors = require('cors');
+		const itemRoutes = require('./routes/itemRoutes');
+
+		dotenv.config();
+		const app = express();
+		app.use(express.json());
+		app.use(cors()); //by default all origins
+		//single origin
+		const corsOptions = {
+			origin: 'http://localhost:3000', // Only allow requests from this URL
+		};
+
+		app.use(cors(corsOptions));
+		//allow multiple origins
+		const allowedOrigins = ['http://localhost:3000', 'http://example.com'];
+
+		const corsOptions = {
+			origin: (origin, callback) => {
+				if (allowedOrigins.includes(origin) || !origin) {
+					callback(null, true);
+				} else {
+					callback(new Error('Not allowed by CORS'));
+				}
+			}
+		};
+
+		app.use(cors(corsOptions));
+		mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+			.then(() => console.log('Connected to MongoDB'))
+			.catch((error) => console.error('MongoDB connection error:', error));
+		app.use('/api/items', itemRoutes);
+		const PORT = process.env.PORT || 3000;
+		app.listen(PORT, () => {
+			console.log(`Server is running on http://localhost:${PORT}`);
+		});
+		
+		
+Use Cases:
+	1. Product Model: product_name,product_description,, price, category, product_image,
+	2. Product Review Model: user_name,product,rating, comment, review_date
+	3. Trainer Model: trainer_name, trainer_phone, trainer_skills, trainer_location, trainer_image
+	
+Update, Read, and Delete Conditions:
+	- Product Model:
+		- update: update product_description add new features, change ctageory, update product image
+			const updateProductImage = async (productId, newImageUrl) => {
+				const result = await Product.findByIdAndUpdate(
+					productId,  // The ID of the product to update
+					{
+						product_image: newImageUrl,  // The new image URL to set
+						updatedAt: new Date()  // Update the updatedAt field with the current date
+					},
+					{ new: true }  // Return the updated document (optional, by default it returns the original document)
+				);
+				if (result) {
+					console.log('Product image updated successfully');
+				} else {
+					console.log('Product not found');
+				}
+			};
+	- Product Review Model:
+		-	update: update comment, update rating
+		
+
+
+
+
+
+
+
+	

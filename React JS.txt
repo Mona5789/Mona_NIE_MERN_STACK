@@ -1,0 +1,252 @@
+//App.jsx
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import './App.css';
+import AddTrainer from '../components/AddTrainer';
+import GetTrainer from '../components/GetTrainer';
+import EditTrainer from '../components/EditTrainer';
+import axios from 'axios';
+
+function App() {
+  const [trainers, setTrainers] = useState([]);
+
+  // Fetch trainers data when the component mounts
+  useEffect(() => {
+    const fetchTrainers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/trainers/');
+        setTrainers(response.data);
+      } catch (error) {
+        console.error('Error fetching trainers:', error);
+      }
+    };
+    fetchTrainers();
+  }, []);
+
+  const handleAddTrainer = (newTrainer) => {
+    setTrainers([...trainers, newTrainer]);
+  };
+
+  const handleUpdateTrainer = (updatedTrainer) => {
+    const updatedTrainers = trainers.map((trainer) =>
+      trainer._id === updatedTrainer._id ? updatedTrainer : trainer
+    );
+    setTrainers(updatedTrainers);
+  };
+
+  const handleDeleteTrainer = async (trainerId) => {
+    try {
+      // Call your backend API to delete the trainer (if you have a backend)
+      await axios.delete(`http://localhost:3000/api/trainers/${trainerId}`);
+
+      // If successful, remove the trainer from the state
+      setTrainers(trainers.filter((trainer) => trainer._id !== trainerId));
+    } catch (error) {
+      console.error('Error deleting trainer:', error);
+    }
+  };
+
+  return (
+    <Router>
+      <div className="container">
+        <h1>Trainer Management</h1>
+        <nav>
+          <Link to="/">Trainer List</Link> | <Link to="/add-trainer">Add Trainer</Link>
+        </nav>
+
+        <Routes>
+          <Route path="/" element={<GetTrainer trainers={trainers} onDeleteTrainer={handleDeleteTrainer} />} />
+          <Route path="/add-trainer" element={<AddTrainer onAddTrainer={handleAddTrainer} />} />
+          <Route path="/edit-trainer/:id" element={<EditTrainer trainers={trainers} onUpdateTrainer={handleUpdateTrainer} />} />
+          <Route path="/delete-trainer/:id" element={<EditTrainer trainers={trainers} onUpdateTrainer={handleUpdateTrainer} />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+
+//AddTrainer.jsx component
+
+import React, { useState, useEffect} from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+function AddTrainer({ onAddTrainer }) {
+  const [trainerName, setTrainerName] = useState('');
+  const [trainerLocation, setTrainerLocation] = useState('');
+  const [trainerSkills, setTrainerSkills] = useState('');
+  const [trainerPhone, setTrainerPhone] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const newTrainer = {
+      trainer_name: trainerName,
+      trainer_location: trainerLocation,
+      trainer_skills: trainerSkills,
+      trainer_phone: trainerPhone
+    };
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/trainers/', newTrainer);
+      
+      if (response.status === 201) {
+        onAddTrainer(response.data);  // Update the parent component if needed
+        setTrainerName('');
+        setTrainerLocation('');
+        setTrainerSkills('');
+        setTrainerPhone('');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Error adding trainer:", error);
+      alert("An error occurred while adding the trainer.");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Add Trainer</h2>
+      <div className="mb-3 row">
+        <label className="col-sm-2 col-form-label">Trainer Name:</label>
+        <input type="text" className="form-control" value={trainerName} onChange={(e) => setTrainerName(e.target.value)} required />
+      </div>
+      <div className="mb-3 row">
+        <label className="col-sm-2 col-form-label">Trainer Location:</label>
+        <input type="text" className="form-control" value={trainerLocation} onChange={(e) => setTrainerLocation(e.target.value)} required />
+      </div>
+      <div className="mb-3 row">
+        <label className="col-sm-2 col-form-label">Trainer Skills:</label>
+        <input type="text" className="form-control" value={trainerSkills} onChange={(e) => setTrainerSkills(e.target.value)} required />
+      </div>
+      <div className="mb-3 row">
+        <label className="col-sm-2 col-form-label">Trainer Phone:</label>
+        <input type="Number" className="form-control" value={trainerPhone} onChange={(e) => setTrainerPhone(e.target.value)} required />
+      </div>
+      <button type="submit" className="btn btn-primary">Add Trainer</button>
+    </form>
+  );
+}
+
+export default AddTrainer;
+
+//GetTrainer.jsx
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+function GetTrainer({ trainers, onDeleteTrainer }) {
+  return (
+    <div>
+      <ul style={{ textAlign: 'justify' }}>
+        {trainers.map((trainer) => (
+          <li key={trainer._id}>
+            <strong>Name:</strong> {trainer.trainer_name} <span></span>
+            <strong>Location:</strong> {trainer.trainer_location} <span></span>
+            <strong>Skills:</strong> {trainer.trainer_skills} <span></span>
+            <strong>Phone:</strong> {trainer.trainer_phone} <span></span>
+            <Link to={`/edit-trainer/${trainer._id}`}>
+              <button>Edit</button>
+            </Link>
+            <button onClick={() => onDeleteTrainer(trainer._id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default GetTrainer;
+//EditTrainer.jsx
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+
+function EditTrainer({ trainers, onUpdateTrainer }) {
+  const { id } = useParams(); // Get the trainer ID from the URL params
+  const navigate = useNavigate();
+  console.log("Trainer ID from URL: ", id);
+  console.log("Trainer List: ", trainers);
+  
+  // Find the trainer by ID
+  const trainer = trainers.find((trainer) => trainer._id === parseInt(id));
+
+  // Handle case if trainer is not found
+  if (!trainer) {
+    return <div>Trainer not found!</div>;
+  }
+
+  // Initialize the state with the current trainer's data
+  const [trainerName, setTrainerName] = useState(trainer.trainer_name);
+  const [trainerLocation, setTrainerLocation] = useState(trainer.trainer_location);
+  const [trainerSkills, setTrainerSkills] = useState(trainer.trainer_skills);
+  const [trainerPhone, setTrainerPhone] = useState(trainer.trainer_phone);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Create the updated trainer object
+    const updatedTrainer = {
+      _id: trainer._id, // Ensure to pass the same ID as the original trainer
+      trainer_name: trainerName,
+      trainer_location: trainerLocation,
+      trainer_skills: trainerSkills,
+      trainer_phone: trainerPhone,
+    };
+
+    // Call the function to update the trainer in the parent component
+    onUpdateTrainer(updatedTrainer);
+
+    // Redirect back to the list page after the update
+    navigate('/');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Edit Trainer</h2>
+      <div>
+        <label>Trainer Name:</label>
+        <input
+          type="text"
+          value={trainerName}
+          onChange={(e) => setTrainerName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label>Trainer Location:</label>
+        <input
+          type="text"
+          value={trainerLocation}
+          onChange={(e) => setTrainerLocation(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label>Trainer Skills:</label>
+        <input
+          type="text"
+          value={trainerSkills}
+          onChange={(e) => setTrainerSkills(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label>Trainer Phone:</label>
+        <input
+          type="tel"
+          value={trainerPhone}
+          onChange={(e) => setTrainerPhone(e.target.value)}
+          required
+        />
+      </div>
+      <button type="submit">Update Trainer</button>
+    </form>
+  );
+}
+
+export default EditTrainer;
+
+
+//npm install react-router-dom
