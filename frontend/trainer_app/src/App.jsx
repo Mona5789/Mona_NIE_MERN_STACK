@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import AddTrainer from './component/AddTrainer';
 import GetTrainer from './component/GetTrainer';
-// import EditTrainer from '../components/EditTrainer';
+import EditTrainer from './component/EditTrainer';
 import axios from 'axios';
 
 function App() {
@@ -26,12 +26,10 @@ function App() {
     setTrainers([...trainers, newTrainer]);
   };
 
-  // const handleUpdateTrainer = (updatedTrainer) => {
-  //   const updatedTrainers = trainers.map((trainer) =>
-  //     trainer._id === updatedTrainer._id ? updatedTrainer : trainer
-  //   );
-  //   setTrainers(updatedTrainers);
-  // };
+  const handleUpdateTrainer = async (updatedTrainer) => {
+    const updatedTrainers = trainers.map((trainer) => trainer._id === updatedTrainer._id ? updatedTrainer:trainer);
+    setTrainers(updatedTrainers);
+  };
 
   const handleDeleteTrainer = async (trainerId) => {
     try {
@@ -56,8 +54,7 @@ function App() {
         <Routes>
           <Route path="/" element={<GetTrainer trainers={trainers} onDeleteTrainer={handleDeleteTrainer} />} />
           <Route path="/add-trainer" element={<AddTrainer onAddTrainer={handleAddTrainer} />} />
-          {/* <Route path="/edit-trainer/:id" element={<EditTrainer trainers={trainers} onUpdateTrainer={handleUpdateTrainer} />} />
-          <Route path="/delete-trainer/:id" element={<EditTrainer trainers={trainers} onUpdateTrainer={handleUpdateTrainer} />} /> */}
+          <Route path="/edit-trainer/:id" element={<EditTrainer trainers={trainers} onUpdateTrainer={handleUpdateTrainer} />} />
         </Routes>
       </div>
     </Router>
